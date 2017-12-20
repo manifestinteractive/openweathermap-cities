@@ -1,0 +1,12 @@
+############################################
+## Generic System Ignores
+syntax: glob
+
+!.gitignore
+.DS_Store
+Thumbs.db
+
+## Project Files
+geocoder/archive/*.json
+geocoder/archive/*.txt
+config.php
