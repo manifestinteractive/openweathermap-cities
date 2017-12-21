@@ -9,4 +9,5 @@ Thumbs.db
 ## Project Files
 geocoder/archive/*.json
 geocoder/archive/*.txt
+geocoder/archive.zip
 config.php
