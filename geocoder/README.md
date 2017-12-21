@@ -7,6 +7,8 @@ This is just a quick tool a put together using PHP to:
 2. Loop through each line of the `city_list.txt` file and use Google's GeoCoding service on the `lat` & `lon`
 3. Store GeoCoding Response for parsing into a database
 
+Database is using [GeoCoding Types](https://developers.google.com/maps/documentation/geocoding/intro#Types)
+
 Update Instructions:
 ---
 
@@ -19,20 +21,11 @@ nano config.php
 php -f index.php
 ```
 
-Once you have run the commands above, you will need to reset do some JSON cleanup:
-
-```bash
-cd ./geocoder/archive/
-rm -fr *.gz
-gzip -r *.json --keep
-```
-
-Bulk Unzip Instructions:
+Known Issues
 ---
 
-If you need to unzip all the `.gz` files in one go, here is a command you can use:
+The following 30 City ID's failed to GeoCode and had to be manually entered:
 
-```bash
-cd ./geocoder/archive/
-gunzip -r *.gz --keep
+```
+281227, 281675, 281790, 282108, 282140, 282438, 282740, 282783, 283129, 283385, 283444, 283547, 283971, 284046, 284065, 284270, 284405, 284426, 284524, 284597, 284904, 285103, 285161, 688904, 689307, 700019, 791161, 1430991, 1439622, 6967895
 ```

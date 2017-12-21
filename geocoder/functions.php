@@ -66,9 +66,6 @@ function parse_cities () {
       }
     }
 
-    echo "\nALL DONE !!!\n\n";
-    flush();
-
     fclose($handle);
   }
 }
@@ -85,7 +82,10 @@ function geocode_city ($city_id, $latitude, $longitude, $city_name, $country_cod
   $file = "archive/{$city_id}.json";
 
   if (!file_exists($file)) {
-    $json = file_get_contents("https://maps.googleapis.com/maps/api/geocode/json?address={$city_name},{$country_code}&latlng={$latitude},{$longitude}&result_type=street_address&key=" . GOOGLE_API_KEY);
+    // @NOTE: You will likely have to tweak this URL a few times to get all the City ID's.
+    // I had to go through like 5-6 different passes with different URL params to get them all.
+    //  $json = file_get_contents("https://maps.googleapis.com/maps/api/geocode/json?address={$city_name},{$country_code}&latlng={$latitude},{$longitude}&result_type=street_address&key=" . GOOGLE_API_KEY);
+    $json = file_get_contents("https://maps.googleapis.com/maps/api/geocode/json?address={$city_name},{$country_code}&key=" . GOOGLE_API_KEY);
     $decoded = json_decode($json, true);
 
     if ($decoded && $decoded['status'] === 'OK') {
@@ -108,5 +108,107 @@ function geocode_city ($city_id, $latitude, $longitude, $city_name, $country_cod
       'status' => 'CACHED',
       'message' => "✔ {$file} cached"
     );
+  }
+}
+
+function process_json () {
+  // Connect to Database
+  $pdo = new PDO('mysql:host=' . DB_HOST . ';dbname='.DB_NAME, DB_USER, DB_PASS);
+
+  foreach (glob('archive/*.json') as $city) {
+    $json = file_get_contents($city);
+    $data = json_decode($json, true);
+    $owm_city_id = intval(str_replace('.json', '', basename($city)));
+
+    if (count($data['results']) > 0 && isset($data['results'][0]['address_components'])) {
+      $address_components = $data['results'][0]['address_components'];
+
+      $sql_set = [];
+
+      foreach ($address_components as $address) {
+        // set locality
+        if (isset($address['types']) && $address['types'][0] == 'locality') {
+          $locality_short = addslashes($address['short_name']);
+          $locality_long = addslashes($address['long_name']);
+
+          $sql_set[] = "`locality_short` = '{$locality_short}'";
+          $sql_set[] = "`locality_long` = '{$locality_long}'";
+        }
+
+        // set administrative_area_level_1
+        if (isset($address['types']) && $address['types'][0] == 'administrative_area_level_1') {
+          $admin_level_1_short = addslashes($address['short_name']);
+          $admin_level_1_long = addslashes($address['long_name']);
+
+          $sql_set[] = "`admin_level_1_short` = '{$admin_level_1_short}'";
+          $sql_set[] = "`admin_level_1_long` = '{$admin_level_1_long}'";
+        }
+
+        // set administrative_area_level_2
+        if (isset($address['types']) && $address['types'][0] == 'administrative_area_level_2') {
+          $admin_level_2_short = addslashes($address['short_name']);
+          $admin_level_2_long = addslashes($address['long_name']);
+
+          $sql_set[] = "`admin_level_2_short` = '{$admin_level_2_short}'";
+          $sql_set[] = "`admin_level_2_long` = '{$admin_level_2_long}'";
+        }
+
+        // set administrative_area_level_3
+        if (isset($address['types']) && $address['types'][0] == 'administrative_area_level_3') {
+          $admin_level_3_short = addslashes($address['short_name']);
+          $admin_level_3_long = addslashes($address['long_name']);
+
+          $sql_set[] = "`admin_level_3_short` = '{$admin_level_3_short}'";
+          $sql_set[] = "`admin_level_3_long` = '{$admin_level_3_long}'";
+        }
+
+        // set administrative_area_level_4
+        if (isset($address['types']) && $address['types'][0] == 'administrative_area_level_4') {
+          $admin_level_4_short = addslashes($address['short_name']);
+          $admin_level_4_long = addslashes($address['long_name']);
+
+          $sql_set[] = "`admin_level_4_short` = '{$admin_level_4_short}'";
+          $sql_set[] = "`admin_level_4_long` = '{$admin_level_4_long}'";
+        }
+
+        // set administrative_area_level_5
+        if (isset($address['types']) && $address['types'][0] == 'administrative_area_level_5') {
+          $admin_level_5_short = addslashes($address['short_name']);
+          $admin_level_5_long = addslashes($address['long_name']);
+
+          $sql_set[] = "`admin_level_5_short` = '{$admin_level_5_short}'";
+          $sql_set[] = "`admin_level_5_long` = '{$admin_level_5_long}'";
+        }
+
+        // set locality
+        if (isset($address['types']) && $address['types'][0] == 'country') {
+          $country_short = addslashes($address['short_name']);
+          $country_long = addslashes($address['long_name']);
+
+          $sql_set[] = "`country_short` = '{$country_short}'";
+          $sql_set[] = "`country_long` = '{$country_long}'";
+        }
+
+        // set postal_code
+        if (isset($address['types']) && $address['types'][0] == 'postal_code') {
+          $postal_code = addslashes($address['long_name']);
+          $sql_set[] = "`postal_code` = '{$postal_code}'";
+        }
+      }
+
+      if (count($sql_set) > 0) {
+        $update = join(', ', $sql_set);
+        $query = "UPDATE `owm_city_list` SET {$update} WHERE `owm_city_id` = $owm_city_id";
+
+        try {
+          $pdo->query($query);
+          echo "✔ {$owm_city_id} updated\n";
+          flush();
+        } catch (Exception $e) {
+          echo "✕ {$owm_city_id} {$e->getMessage()}\n";
+          flush();
+        }
+      }
+    }
   }
 }
