@@ -81,11 +81,22 @@ function parse_cities () {
 function geocode_city ($city_id, $latitude, $longitude, $city_name, $country_code) {
   $file = "archive/{$city_id}.json";
 
+  // @NOTE: I needed to use the next two lines of code to get about 400 results
+  // that could not be found.  I stepped the number format's decimal place down
+  // from 4 > 3 > 2 > 1 > 0 to try to find missing results.
+  // $latitude = number_format($latitude, 0, '.', ',');
+  // $longitude = number_format($longitude, 0, '.', ',');
+
+  $city_name = trim($city_name);
+  $country_code = trim($country_code);
+
+  $city_name = str_replace('%0A', '', $city_name);
+  $country_code = str_replace('%0A', '', $country_code);
+
   if (!file_exists($file)) {
-    // @NOTE: You will likely have to tweak this URL a few times to get all the City ID's.
-    // I had to go through like 5-6 different passes with different URL params to get them all.
-    //  $json = file_get_contents("https://maps.googleapis.com/maps/api/geocode/json?address={$city_name},{$country_code}&latlng={$latitude},{$longitude}&result_type=street_address&key=" . GOOGLE_API_KEY);
-    $json = file_get_contents("https://maps.googleapis.com/maps/api/geocode/json?address={$city_name},{$country_code}&key=" . GOOGLE_API_KEY);
+    $url = "https://maps.googleapis.com/maps/api/geocode/json?latlng={$latitude},{$longitude}&key=" . GOOGLE_API_KEY;
+    // $url = "https://maps.googleapis.com/maps/api/geocode/json?address={$city_name},{$country_code}&key=" . GOOGLE_API_KEY;
+    $json = file_get_contents($url);
     $decoded = json_decode($json, true);
 
     if ($decoded && $decoded['status'] === 'OK') {
